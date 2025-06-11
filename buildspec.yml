@@ -1,0 +1,40 @@
+version: 0.2
+phases:
+  pre_build:
+    commands:
+      - echo Installing ECS CLI...
+      - wget https://github.com/aws/amazon-ecs-cli-v2/releases/download/v0.0.4/ecs-preview-linux-v0.0.4
+      - chmod +x ecs-preview-linux-v0.0.4
+      - sudo cp ecs-preview-linux-v0.0.4 /usr/local/bin/ecs
+      - echo Logging in to Amazon ECR...
+      - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $DOCKER_URL
+  build:
+    commands:
+      - echo Building the Docker image...
+      - docker build -t 2048-game .
+      - echo Tagging the Docker image...
+      - docker tag 2048-game:latest $DOCKER_URL/$DOCKER_REPO:latest
+  post_build:
+    commands:
+      - echo Pushing the Docker image to Amazon ECR...
+      - docker push $DOCKER_URL/$DOCKER_REPO:latest
+      - echo Update Docker Compose...
+      - sed -i "s#2048-game:latest#$DOCKER_URL/$DOCKER_REPO:latest#g" docker-compose.yml
+      - echo Generate temporary credentials for ECS deployment...
+      - CREDENTIALS=$(aws sts assume-role --role-arn $ECS_ROLE --role-session-name codebuild-ecs --duration-seconds 900)
+      - export AWS_ACCESS_KEY_ID="$(echo ${CREDENTIALS} | jq -r '.Credentials.AccessKeyId')"
+      - export AWS_SECRET_ACCESS_KEY="$(echo ${CREDENTIALS} | jq -r '.Credentials.SecretAccessKey')"
+      - export AWS_SESSION_TOKEN="$(echo ${CREDENTIALS} | jq -r '.Credentials.SessionToken')"
+      - export AWS_EXPIRATION=$(echo ${CREDENTIALS} | jq -r '.Credentials.Expiration')
+      - ecs-cli configure profile --profile-name demo --access-key "$AWS_ACCESS_KEY_ID" --secret-key "$AWS_SECRET_ACCESS_KEY"
+      - echo Creating ECS cluster for deployment...
+      - ecs-cli configure --cluster demo-cluster --region $AWS_REGION --config-name demo-config
+      - ecs-cli up --cluster-config demo-config --size 2 --launch-type EC2 --instance-type t2.micro --capability-iam 
+      - ecs-cli compose --project-name tutorial  --file docker-compose.yml service up  --deployment-max-percent 100 --deployment-min-healthy-percent 0 --region $AWS_REGION --cluster-config demo-config --create-log-groups
+      - echo Creating imagedefinitions.json file for ECS deployment...
+      - echo '[{"name":"2048-container","imageUri":"$DOCKER_URL/$DOCKER_REPO:latest"}]' > imagedefinitions.json
+      - echo ECS deployment completed successfully. View the public URL
+      - ecs-cli ps
+artifacts:
+  files:
+    - imagedefinitions.json

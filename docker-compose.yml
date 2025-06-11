@@ -1,0 +1,12 @@
+version: '3'
+services:
+  nginx-app:
+    image: 2048-game:latest
+    ports:
+      - "80:80"
+    logging:
+      driver: awslogs
+      options:
+        awslogs-group: /ecs/demo-cluster
+        awslogs-region: ap-south-1
+        awslogs-stream-prefix: ecs
