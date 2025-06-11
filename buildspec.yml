@@ -29,7 +29,7 @@ phases:
       - ecs-cli configure profile --profile-name demo --access-key "$AWS_ACCESS_KEY_ID" --secret-key "$AWS_SECRET_ACCESS_KEY"
       - echo Creating ECS cluster for deployment...
       - ecs-cli configure --cluster demo-cluster --region $AWS_REGION --config-name demo-config
-      - ecs-cli up --cluster-config demo-config --size 2 --launch-type EC2 --instance-type t2.micro --capability-iam 
+      - ecs-cli up --cluster-config demo-config --size 2 --launch-type EC2 --instance-type t2.micro --capability-iam --force
       - ecs-cli compose --project-name tutorial  --file docker-compose.yml service up  --deployment-max-percent 100 --deployment-min-healthy-percent 0 --region $AWS_REGION --cluster-config demo-config --create-log-groups
       - echo Creating imagedefinitions.json file for ECS deployment...
       - echo '[{"name":"2048-container","imageUri":"$DOCKER_URL/$DOCKER_REPO:latest"}]' > imagedefinitions.json
