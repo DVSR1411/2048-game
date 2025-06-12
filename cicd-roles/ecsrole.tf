@@ -25,6 +25,11 @@ resource "aws_iam_role_policy" "ecs_policy" {
         Effect = "Allow"
         Action = [
           "ecs:*",
+				  "cloudformation:*",
+				  "iam:*",
+				  "autoscaling:*",
+				  "ec2:*",
+				  "ssm:GetParameter",
           "logs:CreateLogGroup",
           "logs:PutLogEvents",
           "logs:CreateLogStream"
