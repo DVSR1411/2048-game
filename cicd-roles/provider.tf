@@ -1,5 +1,4 @@
-data "aws_region" "current" {}
 provider "aws" {
-  region  = data.aws_region.current.name
+  region  = "ap-south-1"
   profile = "default"
 }
